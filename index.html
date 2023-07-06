@@ -1,188 +1,195 @@
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <title>Eventos do PPGCSociais - 2023</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <style>
-        body {
-            margin-top: 30px;
-            margin-bottom: 30px;
-        }
+      body {
+      margin-top: 30px;
+      margin-bottom: 30px;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
-        <h1>Eventos do PPGCSociais - 2023</h1>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Data</th>
-                    <th>Horário</th>
-                    <th>Evento</th>
-                    <th>Link/Local</th>
-                    <th>Compareceu?</th>
-                </tr>
-            </thead>
-            <tbody id="dados-table-body"></tbody>
-        </table>
-        <div id="total-itens"></div>
-        <div id="frequencia"></div>
+      <h1>Eventos do PPGCSociais - 2023</h1>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Horário</th>
+            <th>Evento</th>
+            <th>Link/Local</th>
+            <th>Compareceu?</th>
+          </tr>
+        </thead>
+        <tbody id="dados-table-body"></tbody>
+      </table>
+      <div id="total-itens"></div>
+      <div id="frequencia"></div>
     </div>
-
     <script>
-        const regexLink = /^(https?:\/\/)?([\w.-]+)\.([a-z]{2,6}\.?)(\/[\w.-]*)*\/?$/i;
-
-        function createCheckbox(eventoKey, compareceu) {
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.checked = compareceu;
-            checkbox.addEventListener('change', () => {
-                const eventos = JSON.parse(localStorage.getItem('eventos'));
-                eventos[eventoKey].compareceu = checkbox.checked;
-                localStorage.setItem('eventos', JSON.stringify(eventos));
-                calculateFrequency();
-            });
-            return checkbox;
-        }
-
-        function renderTable(data) {
-            const tableBody = document.getElementById('dados-table-body');
-            tableBody.innerHTML = '';
-
-            const eventos = JSON.parse(localStorage.getItem('eventos')) || {};
-
-            data.forEach(item => {
-                const eventoKey = `${item.Data}-${item.Evento}`;
-                const compareceu = eventos[eventoKey] && eventos[eventoKey].compareceu;
-
-                const row = document.createElement('tr');
-                row.dataset.evento = eventoKey;
-
-                const dataCell = document.createElement('td');
-                dataCell.textContent = item.Data;
-                row.appendChild(dataCell);
-
-                const horarioCell = document.createElement('td');
-                horarioCell.textContent = item.Horário;
-                row.appendChild(horarioCell);
-
-                const eventoCell = document.createElement('td');
-                eventoCell.textContent = item.Evento;
-                row.appendChild(eventoCell);
-
-                const linkCell = document.createElement('td');
-                const link = item['Link/Local'];
-
-                let formattedLink = link;
-                if (link.startsWith('meet.google.com')) {
-                    formattedLink = 'http://' + link;
-                }
-
-                if (regexLink.test(formattedLink)) {
-                    const anchor = document.createElement('a');
-                    anchor.href = formattedLink;
-                    anchor.textContent = link;
-                    linkCell.appendChild(anchor);
-                } else {
-                    linkCell.textContent = link;
-                }
-                row.appendChild(linkCell);
-
-                const compareceuCell = document.createElement('td');
-                const checkbox = createCheckbox(eventoKey, compareceu);
-                compareceuCell.appendChild(checkbox);
-                row.appendChild(compareceuCell);
-
-                tableBody.appendChild(row);
-            });
-
-            const totalItens = document.getElementById('total-itens');
-            totalItens.textContent = `Total de Itens: ${data.length}`;
-
-            calculateFrequency();
-        }
-
-        function parseCSV(csv) {
-            const lines = csv.split('\n');
-            const headers = lines[0].split(',');
-            const data = [];
-
-            for (let i = 1; i < lines.length; i++) {
-                const row = {};
-                const values = lines[i].split(',');
-
-                for (let j = 0; j < headers.length; j++) {
-                    row[headers[j]] = values[j];
-                }
-
-                data.push(row);
-            }
-
-            return data;
-        }
-
-        function fetchCSVData() {
-            fetch('https://gist.githubusercontent.com/daltroaugusto/ca0672e2f111b5fd4e3bb7b21dd29c1e/raw/896531fde0bb5f3e1a408ed082ea2bc51e9718c7/teste.csv')
-                .then(response => response.text())
-                .then(csv => {
-                    return parseCSV(csv);
-                })
-                .then(data => {
-                    renderTable(data);
-                })
-                .catch(error => {
-                    console.error(error);
-                });
-        }
-
-        function markCheckboxesFromLocalStorage() {
-            const eventos = JSON.parse(localStorage.getItem('eventos')) || {};
-            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-            checkboxes.forEach(checkbox => {
-                const eventoKey = checkbox.parentElement.parentElement.dataset.evento;
-                if (eventos[eventoKey] && eventos[eventoKey].compareceu) {
-                    checkbox.checked = true;
-                }
-            });
-        }
-
-        function saveEventosToLocalStorage() {
-            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-            const eventos = {};
-            checkboxes.forEach(checkbox => {
-                const eventoKey = checkbox.parentElement.parentElement.dataset.evento;
-                eventos[eventoKey] = {
-                    compareceu: checkbox.checked
-                };
-            });
-            localStorage.setItem('eventos', JSON.stringify(eventos));
-        }
-
-        function calculateFrequency() {
-            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-            const totalItens = checkboxes.length;
-            let totalMarcados = 0;
-            checkboxes.forEach(checkbox => {
-                if (checkbox.checked) {
-                    totalMarcados++;
-                }
-            });
-
-            const frequencia = document.getElementById('frequencia');
-            frequencia.textContent = `Frequência: ${(totalMarcados / totalItens * 100).toFixed(2)}%`;
-        }
-
-        window.addEventListener('load', () => {
-            fetchCSVData();
-            markCheckboxesFromLocalStorage();
-        });
-
-        window.addEventListener('beforeunload', () => {
-            saveEventosToLocalStorage();
-        });
+      const regexLink = /^(https?:\/\/)?([\w.-]+)\.([a-z]{2,6}\.?)(\/[\w.-]*)*\/?$/i;
+      
+      function createCheckbox(eventoKey, compareceu) {
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.checked = compareceu;
+          checkbox.addEventListener('change', () => {
+              const eventos = JSON.parse(localStorage.getItem('eventos'));
+              eventos[eventoKey].compareceu = checkbox.checked;
+              localStorage.setItem('eventos', JSON.stringify(eventos));
+              calculateFrequency();
+          });
+          return checkbox;
+      }
+      
+      function renderTable(data) {
+          const tableBody = document.getElementById('dados-table-body');
+          tableBody.innerHTML = '';
+      
+          const eventos = JSON.parse(localStorage.getItem('eventos')) || {};
+      
+          data.forEach(item => {
+              const eventoKey = `${item.Data}-${item.Evento}`;
+              const compareceu = eventos[eventoKey] && eventos[eventoKey].compareceu;
+      
+              const row = document.createElement('tr');
+              row.dataset.evento = eventoKey;
+      
+              const dataCell = document.createElement('td');
+              dataCell.textContent = item.Data;
+              row.appendChild(dataCell);
+      
+              const horarioCell = document.createElement('td');
+              horarioCell.textContent = item.Horário;
+              row.appendChild(horarioCell);
+      
+              const eventoCell = document.createElement('td');
+              eventoCell.textContent = item.Evento;
+              row.appendChild(eventoCell);
+      
+              const linkCell = document.createElement('td');
+             
+              const link = Object.entries(item)[3][1];
+      
+              let formattedLink = link;
+              if (link.startsWith('meet.google.com')) {
+                  formattedLink = 'http://' + link;
+              }
+      
+              if (regexLink.test(formattedLink)) {
+                  const anchor = document.createElement('a');
+                  anchor.href = formattedLink;
+                  anchor.textContent = link;
+                  linkCell.appendChild(anchor);
+              } else {
+                  linkCell.textContent = link;
+              }
+              row.appendChild(linkCell);
+      
+              const compareceuCell = document.createElement('td');
+              const checkbox = createCheckbox(eventoKey, compareceu);
+              compareceuCell.appendChild(checkbox);
+              row.appendChild(compareceuCell);
+      
+              tableBody.appendChild(row);
+          });
+      
+          const totalItens = document.getElementById('total-itens');
+          totalItens.textContent = `Total de Itens: ${data.length}`;
+      
+          calculateFrequency();
+      }
+      
+      function parseCSV(csv) {
+          const lines = csv.split('\n');
+          const headers = lines[0].split(',');
+          const data = [];
+      
+          for (let i = 1; i < lines.length; i++) {
+              const row = {};
+              const values = lines[i].split(',');
+      
+              for (let j = 0; j < headers.length; j++) {
+                  row[headers[j]] = values[j];
+              }
+      
+              data.push(row);
+          }
+      
+          return data;
+      }
+      
+      function fetchCSVData() {
+      
+      fetch("https://sheets.googleapis.com/v4/spreadsheets/1GgFk-bloVjbCL2UVThkqVtcH4BTwt8CQCy8Ef2adPK4/values/P%C3%A1gina1!A1:D?key=AIzaSyCUPDNsZ3iKxfxeSNMam_Ue4C8EvHy4INA")
+      .then(response => response.json())
+      .then(data => {
+      // Get the values object from the parsed data
+      const values = data.values;
+      
+      // Convert the values object into a CSV string
+      const csv = Papa.unparse(values);
+      return parseCSV(csv);
+      })
+      .then(data => {
+      console.log(data);
+        renderTable(data);
+              })
+      .catch(error => {
+      console.error('Error fetching data:', error);
+      });
+      
+      }
+      
+      function markCheckboxesFromLocalStorage() {
+          const eventos = JSON.parse(localStorage.getItem('eventos')) || {};
+          const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+          checkboxes.forEach(checkbox => {
+              const eventoKey = checkbox.parentElement.parentElement.dataset.evento;
+              if (eventos[eventoKey] && eventos[eventoKey].compareceu) {
+                  checkbox.checked = true;
+              }
+          });
+      }
+      
+      function saveEventosToLocalStorage() {
+          const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+          const eventos = {};
+          checkboxes.forEach(checkbox => {
+              const eventoKey = checkbox.parentElement.parentElement.dataset.evento;
+              eventos[eventoKey] = {
+                  compareceu: checkbox.checked
+              };
+          });
+          localStorage.setItem('eventos', JSON.stringify(eventos));
+      }
+      
+      function calculateFrequency() {
+          const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+          const totalItens = checkboxes.length;
+          let totalMarcados = 0;
+          checkboxes.forEach(checkbox => {
+              if (checkbox.checked) {
+                  totalMarcados++;
+              }
+          });
+      
+          const frequencia = document.getElementById('frequencia');
+          frequencia.textContent = `Frequência: ${(totalMarcados / totalItens * 100).toFixed(2)}%`;
+      }
+      
+      window.addEventListener('load', () => {
+          fetchCSVData();
+          markCheckboxesFromLocalStorage();
+      });
+      
+      window.addEventListener('beforeunload', () => {
+          saveEventosToLocalStorage();
+      });
     </script>
-
-<!-- Código gerado a partir de prompts do ChatGPT. Com sutil intervenção humana. Licença GPLv3. -->
-  
-</body>
+    <!-- Código gerado a partir de prompts do ChatGPT. Com sutil intervenção humana. Licença GPLv3. -->
+  </body>
 </html>
